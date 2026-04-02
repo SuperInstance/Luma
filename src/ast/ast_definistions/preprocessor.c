@@ -6,9 +6,8 @@ AstNode *create_module_node(ArenaAllocator *arena, const char *name,
                             const char *doc_comment, int potions,
                             AstNode **body, size_t body_count, size_t line,
                             size_t column) {
-  AstNode *node =
-      create_preprocessor_node(arena, AST_PREPROCESSOR_MODULE,
-                               Node_Category_PREPROCESSOR, line, column);
+  AstNode *node = create_preprocessor_node(
+      arena, AST_PREPROCESSOR_MODULE, Node_Category_PREPROCESSOR, line, column);
   node->preprocessor.module.name = (char *)name;
   node->preprocessor.module.doc_comment = (char *)doc_comment;
   node->preprocessor.module.potions = potions;
@@ -23,10 +22,22 @@ AstNode *create_module_node(ArenaAllocator *arena, const char *name,
 
 AstNode *create_use_node(ArenaAllocator *arena, const char *module_name,
                          const char *alias, size_t line, size_t column) {
-  AstNode *node =
-      create_preprocessor_node(arena, AST_PREPROCESSOR_USE,
-                               Node_Category_PREPROCESSOR, line, column);
+  AstNode *node = create_preprocessor_node(
+      arena, AST_PREPROCESSOR_USE, Node_Category_PREPROCESSOR, line, column);
   node->preprocessor.use.module_name = module_name;
   node->preprocessor.use.alias = alias;
+  return node;
+}
+
+AstNode *create_os_node(ArenaAllocator *arena, char **platforms,
+                        AstNode **bodies, size_t arm_count, bool has_default,
+                        AstNode *default_body, size_t line, size_t column) {
+  AstNode *node = create_preprocessor_node(
+      arena, AST_PREPROCESSOR_OS, Node_Category_PREPROCESSOR, line, column);
+  node->preprocessor.os.platforms = platforms;
+  node->preprocessor.os.bodies = bodies;
+  node->preprocessor.os.arm_count = arm_count;
+  node->preprocessor.os.has_default = has_default;
+  node->preprocessor.os.default_body = default_body;
   return node;
 }

@@ -28,7 +28,7 @@
 /** Enable debug logs for arena allocator (comment to disable) */
 #define DEBUG_ARENA_ALLOC 1
 
-#define Luma_Compiler_version "v0.1.19"
+#define Luma_Compiler_version "v0.1.20"
 
 /** Error codes returned by the compiler */
 typedef enum {
@@ -48,6 +48,7 @@ typedef enum {
 typedef struct {
   const char *filepath;
   const char *name;
+  const char *target_os;
   bool save;
   bool clean;
   bool check_mem;

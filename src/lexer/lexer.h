@@ -73,6 +73,7 @@ typedef enum {
   // prepocessor directives
   TOK_MODULE, /**< @module */
   TOK_USE,    /**< @use */
+  TOK_OS,     /**< @os */
 
   // function attibutes
   TOK_RETURNES_OWNERSHIP, /** #returns_ownership */

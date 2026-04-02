@@ -1,0 +1,10 @@
+@module "main"
+
+@use "std_io" as io
+
+pub const main -> fn () int {
+  io::print("%d\n", [io::int_arg(10)]);
+
+  return 0;
+}
+

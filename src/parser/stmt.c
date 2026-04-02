@@ -75,6 +75,113 @@ Stmt *use_stmt(Parser *parser) {
   return create_use_node(parser->arena, module_name, module_alias, line, col);
 }
 
+// @os {
+//   "windows" => { ... }
+//   "linux"   => { ... }
+//   _         => { ... }  // optional default
+// }
+Stmt *os_stmt(Parser *parser) {
+  int line = p_current(parser).line;
+  int col = p_current(parser).col;
+
+  p_consume(parser, TOK_OS, "Expected '@os' keyword");
+  p_consume(parser, TOK_LBRACE, "Expected '{' after '@os'");
+
+  GrowableArray platforms, bodies;
+  if (!growable_array_init(&platforms, parser->arena, 4, sizeof(char *)) ||
+      !growable_array_init(&bodies, parser->arena, 4, sizeof(Stmt *))) {
+    parser_error(parser, "SyntaxError", parser->file_path,
+                 "Internal error: failed to initialize @os arm arrays", line,
+                 col, 0);
+    return NULL;
+  }
+
+  bool has_default = false;
+  Stmt *default_body = NULL;
+
+  while (p_has_tokens(parser) && p_current(parser).type_ != TOK_RBRACE) {
+    int arm_line = p_current(parser).line;
+    int arm_col = p_current(parser).col;
+
+    // Default arm: _ => { ... }
+    if (p_current(parser).type_ == TOK_IDENTIFIER &&
+        strncmp(p_current(parser).value, "_", p_current(parser).length) == 0) {
+
+      if (has_default) {
+        parser_error(parser, "SyntaxError", parser->file_path,
+                     "Duplicate default arm '_' in @os block", arm_line,
+                     arm_col, p_current(parser).length);
+        return NULL;
+      }
+
+      p_advance(parser); // consume '_'
+      p_consume(parser, TOK_RIGHT_ARROW,
+                "Expected '=>' after '_' in @os block");
+
+      default_body = block_stmt(parser);
+      if (!default_body) {
+        parser_error(parser, "SyntaxError", parser->file_path,
+                     "Expected block body after '=>' in @os default arm",
+                     p_current(parser).line, p_current(parser).col,
+                     p_current(parser).length);
+        return NULL;
+      }
+
+      has_default = true;
+      continue;
+    }
+
+    // Platform arm: "windows" => { ... }
+    if (p_current(parser).type_ != TOK_STRING) {
+      parser_error(
+          parser, "SyntaxError", parser->file_path,
+          "Expected platform string (e.g. \"windows\") or '_' in @os block",
+          arm_line, arm_col, p_current(parser).length);
+      return NULL;
+    }
+
+    char *platform = get_name(parser);
+    p_advance(parser); // consume platform string
+
+    p_consume(parser, TOK_RIGHT_ARROW,
+              "Expected '=>' after platform string in @os block");
+
+    Stmt *arm_body = block_stmt(parser);
+    if (!arm_body) {
+      parser_error(parser, "SyntaxError", parser->file_path,
+                   "Expected block body after '=>' in @os arm",
+                   p_current(parser).line, p_current(parser).col,
+                   p_current(parser).length);
+      return NULL;
+    }
+
+    char **platform_slot = (char **)growable_array_push(&platforms);
+    Stmt **body_slot = (Stmt **)growable_array_push(&bodies);
+
+    if (!platform_slot || !body_slot) {
+      parser_error(parser, "SyntaxError", parser->file_path,
+                   "Internal error: out of memory growing @os arm arrays",
+                   arm_line, arm_col, 0);
+      return NULL;
+    }
+
+    *platform_slot = platform;
+    *body_slot = arm_body;
+  }
+
+  p_consume(parser, TOK_RBRACE, "Expected '}' to close @os block");
+
+  if (platforms.count == 0 && !has_default) {
+    parser_error(parser, "SyntaxError", parser->file_path,
+                 "@os block must have at least one arm", line, col, 0);
+    return NULL;
+  }
+
+  return create_os_node(parser->arena, (char **)platforms.data,
+                        (AstNode **)bodies.data, platforms.count, has_default,
+                        (AstNode *)default_body, line, col);
+}
+
 /**
  * @brief Parses a constant declaration statement
  *
@@ -187,8 +294,8 @@ Stmt *fn_stmt(Parser *parser, const char *name, bool is_public,
   if (!growable_array_init(&param_names, parser->arena, 4, sizeof(char *)) ||
       !growable_array_init(&param_types, parser->arena, 4, sizeof(Type *))) {
     parser_error(parser, "SyntaxError", parser->file_path,
-                 "Internal error: failed to initialize parameter arrays",
-                 line, col, 0);
+                 "Internal error: failed to initialize parameter arrays", line,
+                 col, 0);
     return NULL;
   }
 
@@ -602,9 +709,10 @@ Stmt *block_stmt(Parser *parser) {
 
     Stmt **slot = (Stmt **)growable_array_push(&block);
     if (!slot) {
-      parser_error(parser, "SyntaxError", parser->file_path,
-                   "Internal error: out of memory growing block statement array",
-                   p_current(parser).line, p_current(parser).col, 0);
+      parser_error(
+          parser, "SyntaxError", parser->file_path,
+          "Internal error: out of memory growing block statement array",
+          p_current(parser).line, p_current(parser).col, 0);
       return NULL;
     }
 
@@ -654,9 +762,8 @@ Stmt *if_stmt(Parser *parser) {
   if (p_current(parser).type_ != TOK_IF &&
       p_current(parser).type_ != TOK_ELIF) {
     parser_error(parser, "SyntaxError", parser->file_path,
-                 "Expected 'if' or 'elif' keyword here",
-                 p_current(parser).line, p_current(parser).col,
-                 p_current(parser).length);
+                 "Expected 'if' or 'elif' keyword here", p_current(parser).line,
+                 p_current(parser).col, p_current(parser).length);
     return NULL;
   }
   p_consume(parser, p_current(parser).type_, "Expected 'if' or 'elif' keyword");

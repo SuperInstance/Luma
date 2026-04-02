@@ -4,7 +4,8 @@
 #include "type.h"
 
 // Updated typecheck function in tc.c
-bool typecheck(AstNode *node, Scope *scope, ArenaAllocator *arena, BuildConfig *config) {
+bool typecheck(AstNode *node, Scope *scope, ArenaAllocator *arena,
+               BuildConfig *config) {
   scope->config = config;
   switch (node->category) {
   case Node_Category_STMT:
@@ -24,9 +25,11 @@ bool typecheck(AstNode *node, Scope *scope, ArenaAllocator *arena, BuildConfig *
       return typecheck_module_stmt(node, scope, arena);
     case AST_PREPROCESSOR_USE:
       return typecheck_use_stmt(node, scope, scope, arena);
+    case AST_PREPROCESSOR_OS:
+      return typecheck_os_stmt(node, scope, arena);
     default:
-      tc_error(node, "SyntaxError",
-               "Unknown preprocessor node type %d", node->type);
+      tc_error(node, "SyntaxError", "Unknown preprocessor node type %d",
+               node->type);
       return false;
     }
 

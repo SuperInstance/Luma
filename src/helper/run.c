@@ -98,6 +98,7 @@ bool generate_llvm_code_modules(AstNode *root, BuildConfig config,
                                 ArenaAllocator *allocator, int *step,
                                 CompileTimer *timer) {
   CodeGenContext *ctx = init_codegen_context(allocator);
+  ctx->target_os = config.target_os;
   if (!ctx) {
     return false;
   }

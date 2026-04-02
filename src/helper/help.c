@@ -85,12 +85,16 @@ int print_help() {
   printf("  -lc, --license          Show license information\n");
   printf("  -lsp, --lsp             Run as Language Server Protocol server\n");
   printf("  -name <name>            Set output binary name\n");
+  printf("  -t, --target <os>       Set target platform (linux, macos, "
+         "windows)\n");
+  printf("                          Default: auto-detected host system\n");
   printf("  -save                   Save intermediate files\n");
   printf("  -clean                  Clean build artifacts\n");
   printf("  -debug                  Enable debug mode\n");
   printf("  --no-sanitize           Disable memory sanitization\n");
   printf("  -l, -link <files...>    Link additional files\n");
-  printf("  -doc                    Generates Documantation based on comments\n");
+  printf(
+      "  -doc                    Generates Documantation based on comments\n");
   printf("\nOptimization:\n");
   printf("  -O0                     No optimization (fastest compilation)\n");
   printf("  -O1                     Basic optimization\n");
@@ -237,6 +241,16 @@ bool parse_args(int argc, char *argv[], BuildConfig *config,
   config->lsp_mode = false;
   config->opt_level = 2; // Default opt_level is 2 unless told
 
+#if defined(__APPLE__)
+  config->target_os = "macos";
+#elif defined(__linux__)
+  config->target_os = "linux";
+#elif defined(_WIN32)
+  config->target_os = "windows";
+#else
+  config->target_os = "unknown";
+#endif
+
   for (int i = 1; i < argc; i++) {
     const char *arg = argv[i];
 
@@ -302,6 +316,9 @@ bool parse_args(int argc, char *argv[], BuildConfig *config,
           start++;
         }
         i = start - 1;
+      } else if ((strcmp(arg, "--target") == 0 || strcmp(arg, "-t") == 0) &&
+                 i + 1 < argc) {
+        config->target_os = argv[++i];
       } else if (strcmp(arg, "-O0") == 0)
         config->opt_level = 0;
       else if (strcmp(arg, "-O1") == 0)

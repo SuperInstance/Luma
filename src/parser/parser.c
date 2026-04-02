@@ -104,8 +104,8 @@ Stmt *parse(GrowableArray *tks, ArenaAllocator *arena, BuildConfig *config) {
 
   if (!parser.tks) {
     parser_error(&parser, "SyntaxError", parser.file_path,
-                 "Internal error: failed to get tokens from token array",
-                 0, 0, 0);
+                 "Internal error: failed to get tokens from token array", 0, 0,
+                 0);
     return NULL;
   }
 
@@ -490,6 +490,8 @@ Stmt *parse_stmt(Parser *parser) {
   switch (p_current(parser).type_) {
   case TOK_USE:
     return use_stmt(parser);
+  case TOK_OS:
+    return os_stmt(parser);
   case TOK_CONST:
     return const_stmt(parser, is_public, returns_ownership, takes_ownership);
   case TOK_VAR:
@@ -561,9 +563,8 @@ Type *parse_type(Parser *parser) {
 
   default:
     parser_error(parser, "TypeError", parser->file_path,
-                 "Expected a type name here",
-                 p_current(parser).line, p_current(parser).col,
-                 p_current(parser).length);
+                 "Expected a type name here", p_current(parser).line,
+                 p_current(parser).col, p_current(parser).length);
     return NULL;
   }
 }

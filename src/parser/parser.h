@@ -206,6 +206,7 @@ Type *pointer(Parser *parser);
 Type *array_type(Parser *parser);
 
 Stmt *use_stmt(Parser *parser);
+Stmt *os_stmt(Parser *parser);
 Stmt *expr_stmt(Parser *parser);
 Stmt *var_stmt(Parser *parser, bool is_public);
 Stmt *const_stmt(Parser *parser, bool is_public, bool returns_ownership,

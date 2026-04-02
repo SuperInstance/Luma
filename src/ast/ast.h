@@ -19,6 +19,7 @@ typedef enum {
   // Preprocessor nodes
   AST_PREPROCESSOR_MODULE, // Module declaration
   AST_PREPROCESSOR_USE,    // Use/import statement
+  AST_PREPROCESSOR_OS,     // Used to declare things for different os's
 
   // Expression nodes
   AST_EXPR_LITERAL,    // Literal values (numbers, strings, booleans)
@@ -147,7 +148,7 @@ struct AstNode {
         // Preprocessor-specific data
         struct {
           char *name;
-          char *doc_comment;     
+          char *doc_comment;
           int potions;
           AstNode **body;
           size_t body_count;
@@ -162,6 +163,15 @@ struct AstNode {
           const char *module_name;
           const char *alias;
         } use;
+
+        // @os { "windows" => { ... } "linux" => { ... } }
+        struct {
+          char **platforms; // e.g. ["windows", "linux", "macos"]
+          AstNode **bodies; // parallel array of AST_STMT_BLOCK nodes
+          size_t arm_count;
+          bool has_default;      // true if _ => { ... } arm present
+          AstNode *default_body; // NULL if has_default is false
+        } os;
       };
     } preprocessor;
 
@@ -325,7 +335,7 @@ struct AstNode {
         // Variable declaration
         struct {
           const char *name;
-          char *doc_comment;    // NEW: Variable documentation (///)
+          char *doc_comment; // NEW: Variable documentation (///)
           AstNode *var_type;
           AstNode *initializer;
           bool is_mutable;
@@ -335,7 +345,7 @@ struct AstNode {
         // Struct declaration
         struct {
           const char *name;
-          char *doc_comment;         // NEW: Struct documentation (///)
+          char *doc_comment; // NEW: Struct documentation (///)
           AstNode **public_members;
           size_t public_count;
           AstNode **private_members;
@@ -345,7 +355,7 @@ struct AstNode {
 
         struct {
           const char *name;
-          char *doc_comment;    
+          char *doc_comment;
           AstNode *type;
           AstNode *function;
           bool is_public;
@@ -354,7 +364,7 @@ struct AstNode {
         // Enumeration declaration
         struct {
           const char *name;
-          char *doc_comment;    // NEW: Enum documentation (///)
+          char *doc_comment; // NEW: Enum documentation (///)
           char **members;
           size_t member_count;
           bool is_public;
@@ -363,7 +373,7 @@ struct AstNode {
         // Function declaration
         struct {
           const char *name;
-          char *doc_comment;        // NEW: Function documentation (///)
+          char *doc_comment; // NEW: Function documentation (///)
           char **param_names;
           AstNode **param_types;
           size_t param_count;
@@ -530,10 +540,13 @@ AstNode *create_ast_node(ArenaAllocator *arena, NodeType type,
 // Preprocessor creation functions
 AstNode *create_module_node(ArenaAllocator *arena, const char *name,
                             const char *doc_comment, int potions,
-                            AstNode **body, size_t body_count,
-                            size_t line, size_t column);
+                            AstNode **body, size_t body_count, size_t line,
+                            size_t column);
 AstNode *create_use_node(ArenaAllocator *arena, const char *module_name,
                          const char *alias, size_t line, size_t column);
+AstNode *create_os_node(ArenaAllocator *arena, char **platforms,
+                        AstNode **bodies, size_t arm_count, bool has_default,
+                        AstNode *default_body, size_t line, size_t column);
 
 // Expression creation functions
 AstNode *create_literal_expr(ArenaAllocator *arena, LiteralType lit_type,

@@ -113,7 +113,7 @@ pub const reset_arena -> fn (a: *Arena) void {
 #takes_ownership
 pub const free_arena -> fn (a: *Arena) void {
     free(a.buf);
-    a.buf = NULL;
+    a.buf = cast<*byte>(NULL);
     a.buf_len = 0;
     a.curr_offset = 0;
     a.prev_offset = 0;

@@ -92,6 +92,7 @@ static const KeywordEntry keywords[] = {
 static const KeywordEntry preprocessor_directives[] = {
     {"@module", TOK_MODULE},
     {"@use", TOK_USE},
+    {"@os", TOK_OS},
 };
 
 static const KeywordEntry function_attributes[] = {
@@ -371,40 +372,41 @@ Token next_token(Lexer *lx) {
     advance(lx); // first /
     advance(lx); // second /
     advance(lx); // third /
-    
+
     // Skip optional space after ///
     if (peek(lx, 0) == ' ') {
       advance(lx);
     }
-    
+
     // Collect the rest of the line
     const char *content_start = lx->current;
     while (!is_at_end(lx) && peek(lx, 0) != '\n') {
       advance(lx);
     }
-    
+
     int content_len = (int)(lx->current - content_start);
-    return MAKE_TOKEN(TOK_DOC_COMMENT, content_start, lx, content_len, wh_count);
+    return MAKE_TOKEN(TOK_DOC_COMMENT, content_start, lx, content_len,
+                      wh_count);
   }
-  
+
   if (peek(lx, 0) == '/' && peek(lx, 1) == '/' && peek(lx, 2) == '!') {
     // This is a //! module doc comment
     const char *start = lx->current;
     advance(lx); // first /
     advance(lx); // second /
     advance(lx); // third (!)
-    
+
     // Skip optional space after //!
     if (peek(lx, 0) == ' ') {
       advance(lx);
     }
-    
+
     // Collect the rest of the line
     const char *content_start = lx->current;
     while (!is_at_end(lx) && peek(lx, 0) != '\n') {
       advance(lx);
     }
-    
+
     int content_len = (int)(lx->current - content_start);
     return MAKE_TOKEN(TOK_MODULE_DOC, content_start, lx, content_len, wh_count);
   }

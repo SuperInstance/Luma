@@ -75,6 +75,9 @@ LLVMValueRef codegen_stmt(CodeGenContext *ctx, AstNode *node) {
     // Handle @use directives
     return codegen_stmt_use(ctx, node);
 
+  case AST_PREPROCESSOR_OS:
+    return codegen_stmt_os(ctx, node);
+
   case AST_STMT_EXPRESSION:
     return codegen_stmt_expression(ctx, node);
   case AST_STMT_VAR_DECL:

@@ -111,6 +111,8 @@ struct CodeGenContext {
   CommonTypes common_types;
   StructInfo *struct_types;
 
+  const char *target_os;
+
   // Memory Management
   ArenaAllocator *arena;
 };
@@ -347,6 +349,7 @@ LLVMValueRef codegen_stmt_program_multi_module(CodeGenContext *ctx,
                                                AstNode *node);
 LLVMValueRef codegen_stmt_module(CodeGenContext *ctx, AstNode *node);
 LLVMValueRef codegen_stmt_use(CodeGenContext *ctx, AstNode *node);
+LLVMValueRef codegen_stmt_os(CodeGenContext *ctx, AstNode *node);
 
 // =============================================================================
 // AST NODE HANDLERS - EXPRESSION TYPES

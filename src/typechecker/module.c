@@ -174,7 +174,8 @@ bool process_module_in_order(const char *module_name, GrowableArray *dep_graph,
   }
 
   if (!module) {
-    tc_error(modules[0], "Internal Error", "Module '%s' not found", module_name);
+    tc_error(modules[0], "Internal Error", "Module '%s' not found",
+             module_name);
     return false;
   }
 
@@ -203,7 +204,7 @@ bool process_module_in_order(const char *module_name, GrowableArray *dep_graph,
       continue; // Already processed
 
     // Process function prototypes
-    if (body[j]->type == AST_STMT_FUNCTION && 
+    if (body[j]->type == AST_STMT_FUNCTION &&
         body[j]->stmt.func_decl.forward_declared) {
       if (!typecheck_func_decl(body[j], module_scope, arena)) {
         tc_error(body[j], "Prototype Error",
@@ -240,11 +241,71 @@ bool process_module_in_order(const char *module_name, GrowableArray *dep_graph,
 
   // Run memory analysis if enabled
   StaticMemoryAnalyzer *analyzer = get_static_analyzer(module_scope);
-  if (analyzer && g_tokens && g_token_count > 0 && g_file_path && 
+  if (analyzer && g_tokens && g_token_count > 0 && g_file_path &&
       global_scope->config->check_mem) {
     static_memory_check_and_report(analyzer, arena);
   }
 
   current_dep->processed = true;
+  return true;
+}
+
+bool typecheck_os_stmt(AstNode *node, Scope *scope, ArenaAllocator *arena) {
+  if (!node || node->type != AST_PREPROCESSOR_OS) {
+    tc_error(node, "Internal Error", "Expected @os node");
+    return false;
+  }
+
+  const char *target_os = scope->config ? scope->config->target_os : NULL;
+
+  // Require a target to be set — the compiler should always know its target
+  if (!target_os) {
+    tc_error(node, "@os Error",
+             "@os block requires a target OS to be set (--target-os flag)");
+    return false;
+  }
+
+  // Find the matching arm
+  AstNode *matched_body = NULL;
+
+  for (size_t i = 0; i < node->preprocessor.os.arm_count; i++) {
+    if (strcmp(node->preprocessor.os.platforms[i], target_os) == 0) {
+      matched_body = node->preprocessor.os.bodies[i];
+      break;
+    }
+  }
+
+  // Fall back to default arm if no platform matched
+  if (!matched_body && node->preprocessor.os.has_default) {
+    matched_body = node->preprocessor.os.default_body;
+  }
+
+  // No match and no default — not necessarily an error, just a no-op
+  // (e.g. an @os block that only handles "windows" is fine on linux
+  //  if the user doesn't need those symbols there)
+  if (!matched_body) {
+    return true;
+  }
+
+  // Typecheck the matched body's statements directly into the current scope
+  // (not a child scope — @os declarations need to be visible at module level)
+  if (matched_body->type != AST_STMT_BLOCK) {
+    tc_error(matched_body, "Internal Error",
+             "@os arm body must be a block statement");
+    return false;
+  }
+
+  for (size_t i = 0; i < matched_body->stmt.block.stmt_count; i++) {
+    AstNode *stmt = matched_body->stmt.block.statements[i];
+    if (!stmt)
+      continue;
+
+    if (!typecheck(stmt, scope, arena, scope->config)) {
+      tc_error(stmt, "@os Error",
+               "Failed to typecheck statement in @os \"%s\" arm", target_os);
+      return false;
+    }
+  }
+
   return true;
 }

@@ -451,6 +451,66 @@ LLVMValueRef codegen_stmt_use(CodeGenContext *ctx, AstNode *node) {
   return NULL;
 }
 
+LLVMValueRef codegen_stmt_os(CodeGenContext *ctx, AstNode *node) {
+  if (!node || node->type != AST_PREPROCESSOR_OS) {
+    fprintf(stderr, "ERROR: codegen_stmt_os - invalid node\n");
+    return NULL;
+  }
+
+  const char *target_os = ctx->target_os;
+
+  // Must have a target set — the typechecker already enforced this,
+  // but be defensive here too.
+  if (!target_os) {
+    fprintf(stderr, "ERROR: @os block reached codegen without a target OS set. "
+                    "Pass --target-os when invoking the compiler.\n");
+    return NULL;
+  }
+
+  // Find the matching platform arm (linear scan — arm counts are tiny)
+  AstNode *matched_body = NULL;
+
+  for (size_t i = 0; i < node->preprocessor.os.arm_count; i++) {
+    if (strcmp(node->preprocessor.os.platforms[i], target_os) == 0) {
+      matched_body = node->preprocessor.os.bodies[i];
+      break;
+    }
+  }
+
+  // Fall back to the default arm (_) if no platform matched
+  if (!matched_body && node->preprocessor.os.has_default) {
+    matched_body = node->preprocessor.os.default_body;
+  }
+
+  // No match and no default — valid no-op (e.g. windows-only block on linux)
+  if (!matched_body) {
+    return NULL;
+  }
+
+  // The body must be a block.  Emit its statements directly into the
+  // *current* scope, not a child scope — identical to the typechecker's
+  // approach so that declarations remain visible at module level.
+  if (matched_body->type != AST_STMT_BLOCK) {
+    fprintf(stderr,
+            "ERROR: codegen_stmt_os - @os arm body is not a block (type=%d)\n",
+            matched_body->type);
+    return NULL;
+  }
+
+  LLVMValueRef last = NULL;
+  for (size_t i = 0; i < matched_body->stmt.block.stmt_count; i++) {
+    AstNode *stmt = matched_body->stmt.block.statements[i];
+    if (!stmt)
+      continue;
+
+    last = codegen_stmt(ctx, stmt);
+    // Don't abort on NULL — some statements (e.g. struct decls) legitimately
+    // return NULL while still having side effects on ctx.
+  }
+
+  return last;
+}
+
 void import_module_symbols(CodeGenContext *ctx,
                            ModuleCompilationUnit *source_module,
                            const char *alias) {

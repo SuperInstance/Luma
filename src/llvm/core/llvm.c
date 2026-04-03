@@ -92,8 +92,22 @@ static LLVMTargetMachineRef create_target_machine(void) {
     return NULL;
   }
 
+  const char *cpu_name = "generic";
+  const char *cpu_features = "";
+
+#if !defined(__APPLE__)
   char *host_cpu = LLVMGetHostCPUName();
   char *host_features = LLVMGetHostCPUFeatures();
+  if (host_cpu && strlen(host_cpu) > 0) {
+    cpu_name = host_cpu;
+  }
+  if (host_features && strlen(host_features) > 0) {
+    cpu_features = host_features;
+  }
+#else
+  cpu_name = "generic";
+  cpu_features = "";
+#endif
 
 #if defined(__APPLE__)
   LLVMCodeModel code_model = LLVMCodeModelDefault;
@@ -102,12 +116,14 @@ static LLVMTargetMachineRef create_target_machine(void) {
 #endif
 
   LLVMTargetMachineRef machine = LLVMCreateTargetMachine(
-      target, target_triple, host_cpu, host_features,
+      target, target_triple, cpu_name, cpu_features,
       LLVMCodeGenLevelNone, // Fast compilation, no optimization
       LLVMRelocPIC, code_model);
 
+#if !defined(__APPLE__)
   LLVMDisposeMessage(host_cpu);
   LLVMDisposeMessage(host_features);
+#endif
   LLVMDisposeMessage(target_triple);
 
   return machine;

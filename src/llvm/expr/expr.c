@@ -1300,9 +1300,6 @@ LLVMValueRef codegen_expr_cast(CodeGenContext *ctx, AstNode *node) {
 
   LLVMTypeKind source_kind = LLVMGetTypeKind(source_type);
   LLVMTypeKind target_kind = LLVMGetTypeKind(target_type);
-  fprintf(stderr, "DEBUG cast: source_kind=%d (int=%d, ptr=%d), target_kind=%d (int=%d, ptr=%d)\n",
-          source_kind, LLVMIntegerTypeKind, LLVMPointerTypeKind,
-          target_kind, LLVMIntegerTypeKind, LLVMPointerTypeKind);
 
   // If types are the same, no cast needed
   if (source_type == target_type)

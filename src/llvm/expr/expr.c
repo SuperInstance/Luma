@@ -1358,8 +1358,8 @@ LLVMValueRef codegen_expr_cast(CodeGenContext *ctx, AstNode *node) {
   // Integer to Pointer
   if (source_kind == LLVMIntegerTypeKind &&
       target_kind == LLVMPointerTypeKind) {
-    if (!target_type) {
-      fprintf(stderr, "Error: target_type is NULL in inttoptr cast\n");
+    if (!target_type || !LLVMTypeIsSized(target_type)) {
+      fprintf(stderr, "Error: invalid pointer type in inttoptr cast\n");
       return NULL;
     }
     return LLVMBuildIntToPtr(ctx->builder, value, target_type, "inttoptr");
@@ -1368,8 +1368,8 @@ LLVMValueRef codegen_expr_cast(CodeGenContext *ctx, AstNode *node) {
   // Pointer to Integer
   if (source_kind == LLVMPointerTypeKind &&
       target_kind == LLVMIntegerTypeKind) {
-    if (!target_type) {
-      fprintf(stderr, "Error: target_type is NULL in ptrtoint cast\n");
+    if (!target_type || !LLVMTypeIsSized(target_type)) {
+      fprintf(stderr, "Error: invalid integer type in ptrtoint cast\n");
       return NULL;
     }
     return LLVMBuildPtrToInt(ctx->builder, value, target_type, "ptrtoint");

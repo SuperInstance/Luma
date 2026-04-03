@@ -41,6 +41,11 @@ LLVMValueRef create_struct_zero_initializer(CodeGenContext *ctx, const char *str
         return NULL;
     }
     
+    if (!struct_info->llvm_type) {
+        fprintf(stderr, "Error: llvm_type for struct '%s' is NULL\n", struct_name);
+        return NULL;
+    }
+    
     return LLVMConstNull(struct_info->llvm_type);
 }
 
@@ -244,9 +249,17 @@ LLVMValueRef initialize_struct_with_defaults(CodeGenContext *ctx, const char *st
                 default_value = LLVMConstReal(struct_info->field_types[i], 0.0);
                 break;
             case LLVMPointerTypeKind:
+                if (!struct_info->field_types[i]) {
+                  fprintf(stderr, "Error: field_types[%zu] is NULL\n", i);
+                  return NULL;
+                }
                 default_value = LLVMConstNull(struct_info->field_types[i]);
                 break;
             default:
+                if (!struct_info->field_types[i]) {
+                  fprintf(stderr, "Error: field_types[%zu] is NULL\n", i);
+                  return NULL;
+                }
                 default_value = LLVMConstNull(struct_info->field_types[i]);
                 break;
         }

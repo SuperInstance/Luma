@@ -46,7 +46,7 @@ LLVMValueRef create_struct_zero_initializer(CodeGenContext *ctx, const char *str
         return NULL;
     }
     
-    return LLVMConstNull(struct_info->llvm_type);
+    return get_default_value(struct_info->llvm_type);
 }
 
 // Create a copy of a struct
@@ -235,33 +235,10 @@ LLVMValueRef initialize_struct_with_defaults(CodeGenContext *ctx, const char *st
     
     // Initialize each field with appropriate default
     for (size_t i = 0; i < struct_info->field_count; i++) {
-        LLVMValueRef default_value;
-        LLVMTypeKind kind = LLVMGetTypeKind(struct_info->field_types[i]);
-        
-        switch (kind) {
-            case LLVMIntegerTypeKind:
-                default_value = LLVMConstInt(struct_info->field_types[i], 0, false);
-                break;
-            case LLVMFloatTypeKind:
-                default_value = LLVMConstReal(struct_info->field_types[i], 0.0);
-                break;
-            case LLVMDoubleTypeKind:
-                default_value = LLVMConstReal(struct_info->field_types[i], 0.0);
-                break;
-            case LLVMPointerTypeKind:
-                if (!struct_info->field_types[i]) {
-                  fprintf(stderr, "Error: field_types[%zu] is NULL\n", i);
-                  return NULL;
-                }
-                default_value = LLVMConstNull(struct_info->field_types[i]);
-                break;
-            default:
-                if (!struct_info->field_types[i]) {
-                  fprintf(stderr, "Error: field_types[%zu] is NULL\n", i);
-                  return NULL;
-                }
-                default_value = LLVMConstNull(struct_info->field_types[i]);
-                break;
+        LLVMValueRef default_value = get_default_value(struct_info->field_types[i]);
+        if (!default_value) {
+            fprintf(stderr, "Error: Cannot create default value for field %zu\n", i);
+            return NULL;
         }
         
         LLVMValueRef field_ptr = LLVMBuildStructGEP2(

@@ -80,6 +80,26 @@ bool pointer_type(LLVMTypeRef type) {
 
 bool types_are_equal(LLVMTypeRef a, LLVMTypeRef b) { return a == b; }
 
+LLVMValueRef get_default_value(LLVMTypeRef type) {
+  if (!type)
+    return NULL;
+
+  switch (LLVMGetTypeKind(type)) {
+  case LLVMIntegerTypeKind:
+  case LLVMFloatTypeKind:
+  case LLVMDoubleTypeKind:
+  case LLVMStructTypeKind:
+  case LLVMArrayTypeKind:
+    return LLVMConstNull(type);
+
+  case LLVMPointerTypeKind:
+    return LLVMConstPointerNull(type);
+
+  default:
+    return NULL;
+  }
+}
+
 // Check if conversion is needed
 bool needs_conversion(LLVMTypeRef from, LLVMTypeRef to) {
   if (from == to)

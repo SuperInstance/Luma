@@ -268,6 +268,7 @@ bool is_float_type(LLVMTypeRef type);
 bool pointer_type(LLVMTypeRef type);
 bool types_are_equal(LLVMTypeRef a, LLVMTypeRef b);
 bool needs_conversion(LLVMTypeRef from, LLVMTypeRef to);
+LLVMValueRef get_default_value(LLVMTypeRef type);
 
 LLVMValueRef alloca_and_store(CodeGenContext *ctx, LLVMTypeRef type,
                               LLVMValueRef value, const char *name);

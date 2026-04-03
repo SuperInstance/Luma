@@ -118,11 +118,7 @@ LLVMValueRef codegen_expr_literal(CodeGenContext *ctx, AstNode *node) {
   }
 
   case LITERAL_NULL:
-    if (!ctx->common_types.i8_ptr) {
-      fprintf(stderr, "Error: i8_ptr type not initialized\n");
-      return NULL;
-    }
-    return LLVMConstNull(ctx->common_types.i8_ptr);
+    return get_default_value(ctx->common_types.i8_ptr);
 
   default:
     fprintf(stderr, "ERROR: Unknown literal type: %d\n",

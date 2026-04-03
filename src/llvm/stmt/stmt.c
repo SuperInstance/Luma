@@ -127,19 +127,25 @@ LLVMValueRef codegen_stmt_var_decl(CodeGenContext *ctx, AstNode *node) {
         } else {
           fprintf(stderr,
                   "Error: Global variable initializer must be constant\n");
-          LLVMSetInitializer(var_ref, LLVMConstNull(var_type));
+          LLVMValueRef def = get_default_value(var_type);
+          if (def)
+            LLVMSetInitializer(var_ref, def);
         }
       } else {
         LLVMBuildStore(ctx->builder, init_val, var_ref);
       }
     } else {
       if (ctx->current_function == NULL) {
-        LLVMSetInitializer(var_ref, LLVMConstNull(var_type));
+        LLVMValueRef def = get_default_value(var_type);
+        if (def)
+          LLVMSetInitializer(var_ref, def);
       }
     }
   } else {
     if (ctx->current_function == NULL) {
-      LLVMSetInitializer(var_ref, LLVMConstNull(var_type));
+      LLVMValueRef def = get_default_value(var_type);
+      if (def)
+        LLVMSetInitializer(var_ref, def);
     }
   }
 
@@ -356,7 +362,11 @@ generate_body: {
   if (LLVMGetTypeKind(return_type) == LLVMVoidTypeKind) {
     LLVMBuildRetVoid(ctx->builder);
   } else {
-    LLVMValueRef default_val = LLVMConstNull(return_type);
+    LLVMValueRef default_val = get_default_value(return_type);
+    if (!default_val) {
+      fprintf(stderr, "Error: Cannot create default value for return type\n");
+      return NULL;
+    }
     LLVMBuildRet(ctx->builder, default_val);
   }
 

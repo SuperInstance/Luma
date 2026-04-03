@@ -130,9 +130,10 @@ void generate_cleanup_blocks(CodeGenContext *ctx) {
   if (LLVMGetTypeKind(return_type) == LLVMVoidTypeKind) {
     LLVMBuildRetVoid(ctx->builder);
   } else {
-    // Return default value for the type
-    LLVMValueRef default_val = LLVMConstNull(return_type);
-    LLVMBuildRet(ctx->builder, default_val);
+    LLVMValueRef default_val = get_default_value(return_type);
+    if (default_val) {
+      LLVMBuildRet(ctx->builder, default_val);
+    }
   }
 }
 

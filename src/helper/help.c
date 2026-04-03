@@ -430,6 +430,67 @@ bool get_lib_paths(char *buffer, size_t buffer_size) {
   return false;
 }
 
+#elif defined(__APPLE__)
+/**
+ * @brief Links object file using clang on macOS
+ *
+ * @param obj_filename Path to the object file
+ * @param exe_filename Path for the output executable
+ * @return true if linking succeeded, false otherwise
+ */
+bool link_with_ld(const char *obj_filename, const char *exe_filename) {
+  char command[4096];
+
+  snprintf(command, sizeof(command), "cc \"%s\" -o \"%s\"", obj_filename,
+           exe_filename);
+
+  printf("Linking with: %s\n", command);
+  return system(command) == 0;
+}
+
+bool link_with_ld_simple(const char *obj_filename, const char *exe_filename) {
+  return link_with_ld(obj_filename, exe_filename);
+}
+
+bool get_gcc_file_path(const char *filename, char *buffer, size_t buffer_size) {
+  char command[256];
+  snprintf(command, sizeof(command), "cc -print-file-name=%s", filename);
+
+  FILE *fp = popen(command, "r");
+  if (!fp)
+    return false;
+
+  if (fgets(buffer, buffer_size, fp) != NULL) {
+    size_t len = strlen(buffer);
+    if (len > 0 && buffer[len - 1] == '\n') {
+      buffer[len - 1] = '\0';
+    }
+    pclose(fp);
+    return strcmp(buffer, filename) != 0;
+  }
+
+  pclose(fp);
+  return false;
+}
+
+bool get_lib_paths(char *buffer, size_t buffer_size) {
+  FILE *fp = popen("cc -print-search-dirs | grep '^libraries:' | cut -d'=' -f2", "r");
+  if (!fp)
+    return false;
+
+  if (fgets(buffer, buffer_size, fp) != NULL) {
+    size_t len = strlen(buffer);
+    if (len > 0 && buffer[len - 1] == '\n') {
+      buffer[len - 1] = '\0';
+    }
+    pclose(fp);
+    return true;
+  }
+
+  pclose(fp);
+  return false;
+}
+
 #else
 /**
  * @brief Links object file using ld to create an executable (Unix/Linux)

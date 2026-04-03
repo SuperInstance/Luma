@@ -1297,18 +1297,16 @@ LLVMValueRef codegen_expr_cast(CodeGenContext *ctx, AstNode *node) {
     return NULL;
 
   LLVMTypeRef source_type = LLVMTypeOf(value);
-
   LLVMTypeKind source_kind = LLVMGetTypeKind(source_type);
   LLVMTypeKind target_kind = LLVMGetTypeKind(target_type);
 
-  // If types are the same, no cast needed
+  // If types are identical, no cast needed
   if (source_type == target_type)
     return value;
 
   // Float to Integer
   if (source_kind == LLVMFloatTypeKind || source_kind == LLVMDoubleTypeKind) {
     if (target_kind == LLVMIntegerTypeKind) {
-      // Float to signed integer (truncates decimal part)
       return LLVMBuildFPToSI(ctx->builder, value, target_type, "fptosi");
     }
   }
@@ -1316,7 +1314,6 @@ LLVMValueRef codegen_expr_cast(CodeGenContext *ctx, AstNode *node) {
   // Integer to Float
   if (source_kind == LLVMIntegerTypeKind) {
     if (target_kind == LLVMFloatTypeKind || target_kind == LLVMDoubleTypeKind) {
-      // Signed integer to float
       return LLVMBuildSIToFP(ctx->builder, value, target_type, "sitofp");
     }
   }
@@ -1326,56 +1323,55 @@ LLVMValueRef codegen_expr_cast(CodeGenContext *ctx, AstNode *node) {
       target_kind == LLVMIntegerTypeKind) {
     unsigned source_bits = LLVMGetIntTypeWidth(source_type);
     unsigned target_bits = LLVMGetIntTypeWidth(target_type);
-
     if (source_bits > target_bits) {
-      // Truncate
       return LLVMBuildTrunc(ctx->builder, value, target_type, "trunc");
     } else if (source_bits < target_bits) {
-      // Sign extend (for signed integers)
       return LLVMBuildSExt(ctx->builder, value, target_type, "sext");
     }
+    // Same width — no instruction needed
+    return value;
   }
 
   // Float to Float (different precision)
   if ((source_kind == LLVMFloatTypeKind || source_kind == LLVMDoubleTypeKind) &&
       (target_kind == LLVMFloatTypeKind || target_kind == LLVMDoubleTypeKind)) {
     if (source_kind == LLVMFloatTypeKind && target_kind == LLVMDoubleTypeKind) {
-      // Float to double
       return LLVMBuildFPExt(ctx->builder, value, target_type, "fpext");
-    } else if (source_kind == LLVMDoubleTypeKind &&
-               target_kind == LLVMFloatTypeKind) {
-      // Double to float
+    } else {
       return LLVMBuildFPTrunc(ctx->builder, value, target_type, "fptrunc");
     }
   }
 
-  // Pointer casts
+  // Pointer to Pointer
+  // On LLVM 15+ (opaque pointers) all pointer types are the same `ptr` type,
+  // so source_type == target_type will already have returned above.
+  // LLVMBuildPointerCast hits an internal folding path (getFoldedCast ->
+  // getNullValue) that crashes on macOS with opaque pointers, so we use
+  // LLVMBuildBitCast instead — it is a no-op for same-type pointers and does
+  // the right thing for typed pointers on older LLVM.
   if (source_kind == LLVMPointerTypeKind &&
       target_kind == LLVMPointerTypeKind) {
-    return LLVMBuildPointerCast(ctx->builder, value, target_type, "ptrcast");
+    return LLVMBuildBitCast(ctx->builder, value, target_type, "ptrcast");
   }
 
-  // Integer to Pointer
+  // Integer to Pointer — e.g. cast<*void>(0), cast<*byte>(some_int)
+  // Special-case constant zero to avoid getFoldedCast/getNullValue crash on
+  // macOS LLVM 15+ opaque-pointer builds.
   if (source_kind == LLVMIntegerTypeKind &&
       target_kind == LLVMPointerTypeKind) {
-    if (!target_type || !LLVMTypeIsSized(target_type)) {
-      fprintf(stderr, "Error: invalid pointer type in inttoptr cast\n");
-      return NULL;
+    if (LLVMIsConstant(value) && LLVMConstIntGetSExtValue(value) == 0) {
+      return LLVMConstPointerNull(target_type);
     }
     return LLVMBuildIntToPtr(ctx->builder, value, target_type, "inttoptr");
   }
 
-  // Pointer to Integer
+  // Pointer to Integer — e.g. cast<int>(ptr)
   if (source_kind == LLVMPointerTypeKind &&
       target_kind == LLVMIntegerTypeKind) {
-    if (!target_type || !LLVMTypeIsSized(target_type)) {
-      fprintf(stderr, "Error: invalid integer type in ptrtoint cast\n");
-      return NULL;
-    }
     return LLVMBuildPtrToInt(ctx->builder, value, target_type, "ptrtoint");
   }
 
-  // Fallback to bitcast (use sparingly)
+  // Fallback bitcast
   return LLVMBuildBitCast(ctx->builder, value, target_type, "bitcast");
 }
 
@@ -1683,7 +1679,7 @@ LLVMValueRef codegen_expr_syscall(CodeGenContext *ctx, AstNode *node) {
     }
   }
 
-#if defined(__APPLE__) && (defined(__aarch64__) || defined(__arm64__))
+#if defined(__APPLE__)
   long sysnum = -1;
   if (LLVMIsAConstantInt(llvm_args[0])) {
     sysnum = (long)LLVMConstIntGetSExtValue(llvm_args[0]);

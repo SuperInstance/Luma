@@ -61,6 +61,7 @@ void init_scope(Scope *scope, Scope *parent, const char *name,
   scope->is_module_scope = false;
   scope->associated_node = NULL;
   scope->module_name = NULL;
+  scope->config = parent ? parent->config : NULL;  // ADD THIS LINE
 
   if (!parent) {
     scope->memory_analyzer = arena_alloc(arena, sizeof(StaticMemoryAnalyzer),
@@ -73,8 +74,7 @@ void init_scope(Scope *scope, Scope *parent, const char *name,
   growable_array_init(&scope->symbols, arena, 16, sizeof(Symbol));
   growable_array_init(&scope->children, arena, 8, sizeof(Scope *));
   growable_array_init(&scope->imported_modules, arena, 4, sizeof(ModuleImport));
-  growable_array_init(&scope->deferred_frees, arena, 4,
-                      sizeof(const char *)); // NEW
+  growable_array_init(&scope->deferred_frees, arena, 4, sizeof(const char *));
 }
 
 Symbol *scope_lookup_with_visibility(Scope *scope, const char *name,

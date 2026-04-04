@@ -6,7 +6,16 @@
 // Updated typecheck function in tc.c
 bool typecheck(AstNode *node, Scope *scope, ArenaAllocator *arena,
                BuildConfig *config) {
-  scope->config = config;
+    scope->config = config;
+
+  // Propagate config to all existing child scopes
+  for (size_t i = 0; i < scope->children.count; i++) {
+    Scope **child_ptr = (Scope **)((char *)scope->children.data + i * sizeof(Scope *));
+    if (*child_ptr && !(*child_ptr)->config) {
+      (*child_ptr)->config = config;
+    }
+  }
+  
   switch (node->category) {
   case Node_Category_STMT:
     return typecheck_statement(node, scope, arena);

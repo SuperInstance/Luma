@@ -298,3 +298,43 @@ Interested in contributing to Luma? We'd love to have you!
 <p align="center">
   <strong>Built with ❤️ by the Luma community</strong>
 </p>
+
+
+---
+
+## Cocapn Fleet — Language Specialist
+
+<p align="center">
+  <img src="assets/luma-logo.jpg" alt="Luma Logo" width="200"/>
+</p>
+
+Luma is the fleet's language specialist — a **bootable git-agent** that specializes in compiler work, code generation, static analysis, and language design.
+
+### Quick Boot
+```bash
+git clone https://github.com/SuperInstance/Luma
+cd Luma
+bash boot_agent.sh "your task here"
+```
+
+### Agent Files
+| File | Purpose |
+|------|---------|
+| [CHARTER.md](../CHARTER.md) | Identity and mission |
+| [STATE.md](../STATE.md) | Current status and capabilities |
+| [TASK-BOARD.md](../TASK-BOARD.md) | Assignable work (20+ tasks) |
+| [BOOTCAMP.md](../BOOTCAMP.md) | Replacement training guide |
+| [SKILLS.md](../SKILLS.md) | What Luma can do |
+| [boot_agent.sh](../boot_agent.sh) | One-command boot script |
+
+### How to Task Luma
+1. Leave a bottle in `for-fleet/` describing the task
+2. Or pick from [TASK-BOARD.md](../TASK-BOARD.md)
+3. Luma reads context, builds, implements, tests, commits with `[luma]` attribution
+
+### Fleet Integration
+- Cross-compiles for ARM64 (Jetson) and x86_64 (cloud)
+- Output feeds into flux-runtime and holodeck systems
+- Static analysis catches bugs before edge deployment
+- Planned: FLUX bytecode emission backend (Luma → FLUX ISA)
+
